@@ -2,7 +2,6 @@ import argparse
 import logging
 import mysql.connector
 import paho.mqtt.client as mqtt
-import os
 import json
 
 MQTT_BROKER_HOST = "127.0.0.1"
@@ -25,10 +24,11 @@ class MQTTConnector:
 		self.mqtt_client = mqtt.Client()
 		self.mqtt_client.on_message = self.on_message
 		self.device_id = ""
+		self.subscribed_topics = []
 
 		# Set up logging
 		self.logger = logging.getLogger("MQTTConnector")
-		self.logger.setLevel(logging.INFO)
+		self.logger.setLevel(logging.DEBUG)
 		formatter = logging.Formatter("%(asctime)s - [%(lineno)d] - %(levelname)s - %(message)s")
 
 		for handler in self.logger.handlers:
@@ -58,6 +58,7 @@ class MQTTConnector:
 
 	def on_message(self, client, userdata, message):
 		# Store the received message in the remote SQL database
+		self.logger.debug(f'Received message: {message.topic.split("/")[-1]} - {message.payload.decode()}')
 		self.store_message(message.topic, message.payload.decode())
 
 	def store_message(self, topic, message):
@@ -67,6 +68,8 @@ class MQTTConnector:
 		# Parse the MQTT message
 		try:
 			data = json.loads(message)
+			device_id = topic.split("/")[-4]
+			short_topic = topic.split("/")[-1]
 			data_item_id = data.get("dataItemId", "")
 			sequence = data.get("sequence", 0)
 			timestamp = data.get("timestamp", "")
@@ -84,13 +87,13 @@ class MQTTConnector:
 		)
 		cursor = conn.cursor()
 		cursor.execute("INSERT INTO messages (device_id, topic, data_item_id, sequence, timestamp, value) VALUES (%s, %s, %s, %s, %s, %s)",
-					   (topic.split("/")[-4], topic.split("/")[-1], data_item_id, sequence, timestamp, value))
+					   (device_id, short_topic, data_item_id, sequence, timestamp, value))
 		conn.commit()
 		cursor.close()
 		conn.close()
 
 		# Log the published message
-		self.logger.info(f'Device ID: {topic.split("/")[-4]} - Topic: {topic.split("/")[-1]} - Data Item ID: {data_item_id} - Sequence: {sequence} - Timestamp: {timestamp} - Value: {value}')
+		self.logger.info(f'Device ID: {device_id} - Topic: {short_topic} - Data Item ID: {data_item_id} - Sequence: {sequence} - Timestamp: {timestamp} - Value: {value}')
 
 	def set_device_id(self, device_id):
 		self.device_id = device_id
@@ -100,11 +103,13 @@ class MQTTConnector:
 
 	def add_topic(self, topic):
 		full_topic = f"MTConnect/Observation/{self.device_id}/Controller/Events/{topic}"
-		self.logger.warning(f"Subscribing to topic: {full_topic}")
-		self.mqtt_client.subscribe(full_topic)
+		if full_topic not in self.subscribed_topics:  # Check if topic is already subscribed
+			self.subscribed_topics.append(full_topic)
+			self.logger.warning(f"Subscribing to topic: {full_topic}")
+			self.mqtt_client.subscribe(full_topic)
 
 	def start(self):
-		self.logger.info("Starting MQTT connector...")
+		self.logger.info("Starting MQTT-DB connector...")
 		self.mqtt_client.loop_forever()
 
 
@@ -150,16 +155,28 @@ if __name__ == "__main__":
 	connector.add_topic("ControllerMode")
 	connector.add_topic("PartStatus")
 	connector.add_topic("Execution")
-	## log list of subscribed topics
-	#connector.logger.info(f"Subscribed to topics: {connector.mqtt_client._topics_to_subscribe}")
+	# Log the current list of subscribed topics
+	connector.logger.debug(f"Subscribed topics: {connector.subscribed_topics}")
 
 	try:
 		# Start the MQTT connector
 		connector.start()
 	except KeyboardInterrupt:
+		connector.logger.info("Stopping MQTT connector...")
 		# Disconnect the MQTT connector
 		connector.disconnect()
 
 		# Remove the debugging database if it exists
 		if connector.db_name == "myDB":
-			os.remove(f"{connector.db_name}.db")
+			conn = mysql.connector.connect(
+				host=args.db_host,
+				port=args.db_port,
+				user=args.db_user,
+				password=args.db_password
+			)
+			cursor = conn.cursor()
+			cursor.execute(f"DROP DATABASE IF EXISTS {args.db_name}")
+			connector.logger.info(f"Removed debugging database: {args.db_name}")
+			cursor.close()
+			conn.close()
+			connector.logger.info("Goodbye.")
