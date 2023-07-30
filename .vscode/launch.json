@@ -12,8 +12,7 @@
 			"console": "integratedTerminal",
 			// "justMyCode": true,
 			"cwd": "${workspaceFolder}/src",
-			"args": ["--broker", "192.168.0.105",
-					"--device-id", "0987654321",
+			"args": ["--broker-address", "192.168.0.105",
 					"--db-host", "172.18.0.1"]
 		}
 	]

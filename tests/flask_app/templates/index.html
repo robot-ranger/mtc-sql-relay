@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>MQTT Topic Subscription</title>
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	<style>
+		body {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 100vh;
+			margin: 0;
+			padding: 0;
+		}
+
+		.status-card {
+			background-color: #E1F5FE;
+			border-radius: 8px;
+			border: 1px solid #3F51B5;
+			padding: 20px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+			text-align: center;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.status-card-heading {
+			margin-right: 20px;
+		}
+
+		.status-card-heading h1 {
+			margin: 0;
+		}
+
+		.status-indicator {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			margin: 10px;
+			font-weight: bold;
+		}
+
+		.status-indicator.connected {
+			background-color: #4CAF50;
+			color: white;
+		}
+
+		.status-indicator.disconnected {
+			background-color: #F44336;
+			color: white;
+		}
+
+		.status-label {
+			margin-bottom: 10px;
+		}
+
+		.status-label.connected {
+			color: #4CAF50;
+		}
+
+		.status-label.disconnected {
+			color: #F44336;
+		}
+
+		.container {
+			margin: 20px auto;
+			max-width: 800px;
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			grid-gap: 20px;
+		}
+
+		.card {
+			background-color: #E1F5FE;
+			border-radius: 8px;
+			border: 1px solid #3F51B5;
+			padding: 20px;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		table {
+			width: 100%;
+		}
+
+		th,
+		td {
+			text-align: left;
+			padding: 8px;
+		}
+
+		tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+
+		.add-button {
+			margin-bottom: 10px;
+		}
+
+		.modal-overlay {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			z-index: 999;
+		}
+
+		.modal {
+			display: none;
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: #fefefe;
+			border: 1px solid #888;
+			border-radius: 8px;
+			padding: 20px;
+			z-index: 1000;
+		}
+
+		.form-row {
+			display: flex;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.form-row label {
+			flex: 0 0 120px;
+		}
+
+		.form-row input[type="text"] {
+			flex: 1;
+			padding: 8px;
+		}
+
+		@media (max-width: 600px) {
+			.container {
+				grid-template-columns: 1fr;
+			}
+
+			.status-card {
+				margin-bottom: 20px;
+			}
+		}
+	</style>
+
+
+</head>
+
+<body>
+	<div class="status-card">
+		<div class="status-card-heading">
+			<h1>Status</h1>
+		</div>
+		<div class="status-indicator connected">
+			<span>B</span>
+		</div>
+		<p class="status-label connected">Broker Connected</p>
+		<div class="status-indicator disconnected">
+			<span>DB</span>
+		</div>
+		<p class="status-label disconnected">DB Disconnected</p>
+	</div>
+
+	<div class="container">
+		<div class="card">
+			<h1 class="w3-margin-bottom">Subscribed MQTT Topics</h1>
+			<button onclick="openModal()" class="w3-button w3-blue add-button">Add Topic</button>
+			<table class="w3-table-all">
+				<thead>
+					<tr class="w3-light-grey">
+						<th>Device ID</th>
+						<th>Short Topic</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in topics %}
+					<tr>
+						<td>{{ row.device_id }}</td>
+						<td>{{ row.short_topic }}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<div class="card">
+            <h1 class="w3-margin-bottom">Configuration</h1>
+            <form method="POST" action="/apply_config">
+                <div class="form-row">
+                    <label for="broker_host">Broker Host:</label>
+                    <input type="text" id="broker_host" name="broker_host" class="w3-input w3-border" value="{{ config.broker_host }}">
+                </div>
+                <div class="form-row">
+                    <label for="db_host">DB Host:</label>
+                    <input type="text" id="db_host" name="db_host" class="w3-input w3-border" value="{{ config.db_host }}">
+                </div>
+                <div class="form-row">
+                    <label for="db_port">DB Port:</label>
+                    <input type="text" id="db_port" name="db_port" class="w3-input w3-border" value="{{ config.db_port }}">
+                </div>
+                <div class="form-row">
+                    <label for="db_user">DB User:</label>
+                    <input type="text" id="db_user" name="db_user" class="w3-input w3-border" value="{{ config.db_user }}">
+                </div>
+                <div class="form-row">
+                    <label for="db_password">DB Password:</label>
+                    <input type="text" id="db_password" name="dbpassword" class="w3-input w3-border" value="{{ config.db_password }}">
+                </div>
+                <div class="form-row">
+                    <label for="db_name">DB Name:</label>
+                    <input type="text" id="db_name" name="db_name" class="w3-input w3-border" value="{{ config.db_name }}">
+                </div>
+                <div class="form-row">
+                    <label for="table_name">Table Name:</label>
+                    <input type="text" id="table_name" name="table_name" class="w3-input w3-border" value="{{ config.table_name }}">
+                </div>
+                <input type="submit" value="Apply & Restart" class="w3-button w3-blue">
+            </form>
+        </div>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <span onclick="closeModal()" class="w3-button w3-display-topright">&times;</span>
+            <form method="POST" id="addForm" action="/add_topic">
+                <div class="form-row">
+                    <label for="device_id">Device ID:</label>
+                    <input type="text" id="device_id" name="device_id" class="w3-input w3-border">
+                </div>
+                <div class="form-row">
+                    <label for="short_topic">Short Topic:</label>
+                    <input type="text" id="short_topic" name="short_topic" class="w3-input w3-border">
+                </div>
+                <input type="submit" value="Add" class="w3-button w3-blue">
+            </form>
+        </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay"></div>
+
+    <script>
+        function openModal() {
+            document.getElementById("addModal").style.display = "block";
+            document.getElementById("modalOverlay").style.display = "block";
+            document.getElementById("addForm").action = "/add_topic";
+        }
+
+        function closeModal() {
+            document.getElementById("addModal").style.display = "none";
+            document.getElementById("modalOverlay").style.display = "none";
+        }
+    </script>
+</body>
+
+</html>
