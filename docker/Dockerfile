@@ -9,8 +9,8 @@ WORKDIR /pyi
 COPY . .
 RUN apk update \
 	&& apk add binutils
-RUN pip3 install -r src/requirements.txt \
-	&& pyinstaller main-${TARGETARCH}.spec
+RUN pip3 install -r src/requirements.txt
+RUN pyinstaller main-${TARGETARCH}.spec
 
 # ---------------------------------------------------------------------
 # release
