@@ -3,3 +3,4 @@ fastapi_mqtt==2.0.0
 mysql_connector_repackaged==0.3.1
 paho_mqtt==1.6.1
 uvicorn==0.23.2
+pyinstaller==5.12.0
