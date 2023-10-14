@@ -50,7 +50,6 @@ jobs:
 
                   # docker hub user/repo:tag
                   tags: |
-                    ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.VERSION }}
                     ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.VERSION }}-latest
                     ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.VERSION }}-${{ steps.get_sha.outputs.sha_short }}
 
