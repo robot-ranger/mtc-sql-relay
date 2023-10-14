@@ -6,9 +6,11 @@ import paho.mqtt.client as mqtt
 import argparse
 import sqlite3
 import mysql.connector
+import mysql.connector.locales.eng
 import json
 import logging
 import uvicorn
+
 
 description = """
 ![img](/static/process_robotics.png)
