@@ -12,8 +12,8 @@ services:
       - 3306:3306
     volumes:
       - ./mysql:/var/lib/mysql
-  connector:
-    image: robot-ranger/mqtt-connector:latest
+  relay:
+    image: robotranger/mqtt-sql-conn:web-app-latest
     container_name: connector
     restart: always
     ports:
