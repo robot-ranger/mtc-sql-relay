@@ -8,7 +8,7 @@ a = Analysis(
     ['src/fastAPI.py'],
     pathex=[],
     binaries=[],
-    datas=[('static', 'static'), ('templates', 'templates')],
+    datas=[('src/static', 'static')],
     hiddenimports=['uvicorn.logging',
                 'uvicorn.loops',
                 'uvicorn.loops.auto',
